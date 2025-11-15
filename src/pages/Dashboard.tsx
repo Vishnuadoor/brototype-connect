@@ -25,10 +25,40 @@ function DashboardContent() {
   const [complaints, setComplaints] = useState<Complaint[]>([]);
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({ total: 0, new: 0, inProgress: 0, resolved: 0 });
+  const [profile, setProfile] = useState<any>(null);
 
   useEffect(() => {
-    fetchComplaints();
+    checkUserRole();
   }, [user]);
+
+  useEffect(() => {
+    if (profile && profile.role === 'student') {
+      fetchComplaints();
+    }
+  }, [profile]);
+
+  const checkUserRole = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user?.id)
+        .single();
+
+      if (error) throw error;
+
+      // Redirect managers/admins to manager dashboard
+      if (data.role === 'manager' || data.role === 'admin') {
+        navigate('/manager/dashboard');
+        return;
+      }
+
+      setProfile(data);
+    } catch (error: any) {
+      console.error('Failed to check user role:', error);
+      setLoading(false);
+    }
+  };
 
   const fetchComplaints = async () => {
     try {
